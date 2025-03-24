@@ -18,10 +18,6 @@ classifiers = [
 ]
 dependencies = [
     "parsl>=2024.10.14",
-    "chai_lab",
-    "transformers",
-    "torch",
-    "biopython",
     "pydantic",
     "PyYAML",
     "parsl-object-registry @ git+https://github.com/braceal/parsl_object_registry.git",
