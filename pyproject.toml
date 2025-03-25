@@ -24,9 +24,9 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://github.com/ramanathanlab/parslfold"
-documentation = "https://github.com/ramanathanlab/parslfold"
-repository = "https://github.com/ramanathanlab/parslfold"
+homepage = "https://github.com/ogkdmr/rosettaparsl"
+documentation = "https://github.com/ogkdmr/rosettaparsl"
+repository = "https://github.com/ogkdmr/rosettaparsl"
 
 
 [project.optional-dependencies]
@@ -147,7 +147,7 @@ quote-style = "single"
 
 [tool.ruff.isort]
 force-single-line = true
-known-first-party = ["parslfold", "test", "testing"]
+known-first-party = ["rosettaparsl", "test", "testing"]
 order-by-type = false
 required-imports = ["from __future__ import annotations"]
 
