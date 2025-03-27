@@ -1,0 +1,15 @@
+.gitignore
+.pre-commit-config.yaml
+CITATION.cff
+LICENSE
+README.md
+pyproject.toml
+tox.ini
+rosettaparsl/__init__.py
+rosettaparsl/main.py
+rosettaparsl/utils.py
+rosettaparsl.egg-info/PKG-INFO
+rosettaparsl.egg-info/SOURCES.txt
+rosettaparsl.egg-info/dependency_links.txt
+rosettaparsl.egg-info/requires.txt
+rosettaparsl.egg-info/top_level.txt

@@ -2,6 +2,12 @@
 Code for scaling up Rosetta on the ALCF's Aurora supercomputer using Parsl.
 
 ## Installation
+Instructions below assumes the following:
+
+* Linux Ubuntu 64-bit OS
+* Python 3.12 (in a virtual env)
+
+If your config is different, download a different version of pyRosetta.
 
 ```shell
 #Create the virtual environment.
@@ -19,4 +25,20 @@ tar -vjxf PyRosetta4.Release.python312.ubuntu.release-395.tar.bz2
 cd setup
 python setup.py install
 
+#Install the rest of the dependencies for rosettaparsl
+pip install -e .
+
+```
+
+
+## Contributing
+
+For development, it is recommended to use a virtual environment. The following
+commands will create a virtual environment, install the package in editable
+mode, and install the pre-commit hooks. **Perform these after installing pyRosetta.**
+
+```bash
+pip install -U pip setuptools wheel
+pip install -e '.[dev,docs]'
+pre-commit install
 ```
