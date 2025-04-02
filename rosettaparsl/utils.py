@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import functools
 import json
 import sys
@@ -11,7 +10,6 @@ from typing import Callable
 from typing import TypeVar
 
 import yaml  # type: ignore[import-untyped]
-
 from pydantic import BaseModel as _BaseModel
 from pydantic import Field
 
