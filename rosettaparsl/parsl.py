@@ -291,6 +291,9 @@ class AuroraConfig(BaseComputeConfig):
             # this is necessary if you have tasks that are interrupted by a PBS
             # so that they will restart in the next job
             retries=self.retries,
+            run_dir=run_dir,
+            # Enable app cache for better performance on Aurora
+            app_cache=True,
         )
 
 
