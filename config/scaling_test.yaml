@@ -15,7 +15,7 @@ pyrosetta_config:
 compute_config:
   name: aurora
   num_nodes: 2
-  worker_init: 'mamba init; mamba activate rosettaparsl-env'
+  worker_init: 'mamba init; source ~/.bashrc; mamba activate rosettaparsl-env'
   account: FoundEpidem
   queue: debug
   walltime: 01:00:00
