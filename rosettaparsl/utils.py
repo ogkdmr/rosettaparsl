@@ -84,6 +84,8 @@ def batch_data(data: list[T], chunk_size: int) -> list[list[T]]:
     list[list[T]]
         The batched data.
     """
+    if chunk_size <= 0:
+        raise ValueError('chunk_size must be greater than 0.')
     batches = [
         data[i * chunk_size : (i + 1) * chunk_size]
         for i in range(0, len(data) // chunk_size)

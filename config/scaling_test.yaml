@@ -1,0 +1,21 @@
+# Configuration file to test the workflow.
+
+input_dir: /lus/flare/projects/FoundEpidem/ogokdemir/data/rosettaparsl_data/orig_105_structures
+output_dir: /lus/flare/projects/FoundEpidem/ogokdemir/data/rosettaparsl_data/results
+chunk_size: 1
+
+pyrosetta_config:
+  database_path: /lus/flare/projects/FoundEpidem/ogokdemir/projects/rosettaparsl/pyRosetta/PyRosetta4.Release.python312.ubuntu.release-395/setup/pyrosetta/database
+  weights_file: /lus/flare/projects/FoundEpidem/ogokdemir/projects/rosettaparsl/pyRosetta/PyRosetta4.Release.python312.ubuntu.release-395/setup/pyrosetta/database/scoring/weights/ref2015.wts
+  iterations: 50
+  tolerance: 0.01
+  scorefxn: ref2015
+  minimization_method: lbfgs_armijo_nonmonotone
+
+compute_config:
+  name: aurora
+  num_nodes: 2
+  worker_init: 'mamba activate rosettaparsl-env'
+  account: FoundEpidem
+  queue: debug
+  walltime: 01:00:00

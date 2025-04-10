@@ -43,7 +43,7 @@ class PyRosettaConfig(BaseModel):
         description='Minimization method to use',
     )
 
-    # initialize pyrosetta
+    # Initialize PyRosetta (in the main process)
     @model_validator(mode='after')
     def _init_pyrosetta(self) -> Self:
         """Initialize PyRosetta with the provided configuration."""
@@ -73,8 +73,7 @@ class RosettaParslWorkflowConfig(BaseModel):
     )
     pyrosetta_config: PyRosettaConfig = Field(
         ...,
-        description='Configuration for PyRosetta initialization'
-        ' and minimization',
+        description='Config for PyRosetta initialization and minimization',
     )
     compute_config: ComputeConfigs = Field(
         ...,
@@ -105,10 +104,20 @@ def rosettaparsl_worker(
     pyrosetta_config: PyRosettaConfig,
 ) -> None:
     """Process PDB files: pack side chains, minimize, and compute stability."""
+    # Reinitialize PyRosetta in the worker process
+    try:
+        pyrosetta.init(
+            f'-database {pyrosetta_config.database_path} -ex1 -ex2aro -use_input_sc '  # noqa: E501
+            f'-ignore_unrecognized_res -score:weights {pyrosetta_config.weights_file}',  # noqa: E501
+        )
+    except Exception as init_err:
+        print(f'Error initializing PyRosetta in worker: {init_err}')
+        return
+
     # Initialize the scoring function
     score_fxn = pyrosetta_config.get_scorefxn()
 
-    # Load the structure
+    # Process each PDB file
     for pdb_file in pdb_files:
         try:
             pose = pyrosetta.pose_from_pdb(str(pdb_file))
@@ -132,13 +141,13 @@ def rosettaparsl_worker(
             print(f'Error during side chain packing for {pdb_file}: {e}')
             continue
 
-        # Backbone & side-chain minimization using LBFGS
-        min_mover = pyrosetta.rosetta.protocols.minimization_packing.MinMover()
+        # Backbone & side-chain minimization using the configured method
+        min_mover = rosetta.protocols.minimization_packing.MinMover()
         min_mover.score_function(score_fxn)
         min_mover.min_type(pyrosetta_config.minimization_method)
         min_mover.tolerance(pyrosetta_config.tolerance)
 
-        # Iteratively minimize the energy (maximize stability score.)
+        # Iteratively minimize the energy (maximize stability score)
         prev_score = score_fxn(pose)
         for _ in range(pyrosetta_config.iterations):
             min_mover.apply(pose)
@@ -147,23 +156,30 @@ def rosettaparsl_worker(
                 break
             prev_score = new_score
 
-        # Compute the stability score (ΔΔG)
+        # Compute the stability score (ΔΔG);
+        # here the folded energy is used as the stability score.
         folded_energy = score_fxn(pose)
         stability_score = folded_energy
 
+        # In case of error, skip this file rather than exiting worker
         if stability_score is None:
-            return None
-        pdb_id = pdb_file.stem.split('_')[0]
+            continue
 
-        # Write the stability score to a file
-        with open(output_dir / f'{pdb_id}_stability.txt', 'w') as f:
-            f.write(f'{stability_score}\n')
+        pdb_id = pdb_file.stem.split('_')[1]
+
+        # Write the stability score to an individual file
+        output_file = output_dir / f'{pdb_id}_stability.txt'
+        try:
+            with open(output_file, 'w') as f:
+                f.write(f'{stability_score}\n')
+        except Exception as write_err:
+            print(f'Error writing results for {pdb_file}: {write_err}')
 
 
 if __name__ == '__main__':
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Run RosettaParsl workflow for protein stability prediction.',
+        description='Run RosettaParsl workflow to predict protein stability.',
     )
     parser.add_argument(
         '--config',
@@ -176,7 +192,7 @@ if __name__ == '__main__':
     # Load the configuration from the YAML file
     config = RosettaParslWorkflowConfig.from_yaml(args.config)
 
-    # Log the configuration.
+    # Dump the configuration for record keeping
     config.dump_yaml(config.output_dir / 'rosettaparsl_config.yaml')
 
     # Set the Parsl compute settings.
@@ -184,7 +200,7 @@ if __name__ == '__main__':
         config.output_dir / 'parsl',
     )
 
-    # Check if the input directory contains PDB files, if so collect them.
+    # Collect PDB files from the input directory.
     if config.input_dir.is_dir():
         pdb_files = list(config.input_dir.glob('*.pdb'))
         if not pdb_files:
@@ -193,20 +209,20 @@ if __name__ == '__main__':
             )
     else:
         raise ValueError(
-            f'Input path {config.input_dir} is not a directory.',
+            f'Input path {config.input_dir} is not a directory. '
             'Even if you have a single PDB file, pass the parent directory.',
         )
 
-    # Batch the PDB files based on chunk size.
+    # Batch the PDB files based on the chunk size.
     pdb_batches = batch_data(pdb_files, config.chunk_size)
 
     # Define the worker function with fixed arguments.
     worker_fn = functools.partial(
         rosettaparsl_worker,
-        output_dir=config.output_dir / 'results',
+        output_dir=config.output_dir / 'rosetta_results',
         pyrosetta_config=config.pyrosetta_config,
     )
 
-    # Distribute the rosetta calculations over workers.
+    # Distribute the Rosetta calculations over workers.
     with ParslPoolExecutor(parsl_config) as pool:
         list(pool.map(worker_fn, pdb_batches))
