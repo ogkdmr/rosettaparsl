@@ -43,16 +43,6 @@ class PyRosettaConfig(BaseModel):
         description='Minimization method to use',
     )
 
-    # Initialize PyRosetta (in the main process)
-    @model_validator(mode='after')
-    def _init_pyrosetta(self) -> Self:
-        """Initialize PyRosetta with the provided configuration."""
-        pyrosetta.init(
-            f'-database {self.database_path} -ex1 -ex2aro -use_input_sc '
-            f'-ignore_unrecognized_res -score:weights {self.weights_file}',
-        )
-        return self
-
     # Get the score function based on the passed name.
     def get_scorefxn(self) -> pyrosetta.rosetta.core.scoring.ScoreFunction:
         """Get the score function based on the provided name."""
