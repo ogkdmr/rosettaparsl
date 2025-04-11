@@ -26,6 +26,10 @@ class RosettaParslWorkflowConfig(BaseModel):
         1,
         description='Number of PDB files to process in each worker call',
     )
+    is_test: bool = Field(
+        False,
+        description='If True, run a test with a single PDB file',
+    )
     pyrosetta_config: PyRosettaConfig = Field(
         ...,
         description='Config for PyRosetta initialization and minimization',
@@ -184,6 +188,10 @@ if __name__ == '__main__':
             f'Input path {config.input_dir} is not a directory. '
             'Even if you have a single PDB file, pass the parent directory.',
         )
+
+    # If is_test is True, use only the first PDB file for testing.
+    if config.is_test:
+        pdb_files = pdb_files[:1]
 
     # Batch the PDB files based on the chunk size.
     pdb_batches = batch_data(pdb_files, config.chunk_size)
