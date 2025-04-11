@@ -11,7 +11,7 @@ from pydantic import Field
 from pydantic import model_validator
 from typing_extensions import Self
 
-from rosettaparsl.config.pyrosetta import PyRosettaConfig
+from rosettaparsl.config import PyRosettaConfig
 from rosettaparsl.parsl import ComputeConfigs
 from rosettaparsl.utils import BaseModel
 from rosettaparsl.utils import batch_data
