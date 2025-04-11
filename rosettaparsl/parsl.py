@@ -52,11 +52,29 @@ class WorkstationConfig(BaseComputeConfig):
     """Compute config for a GPU workstation."""
 
     name: Literal['workstation'] = 'workstation'  # type: ignore[assignment]
-
+    is_gpu: bool = Field(
+        default=False,
+        description='Whether this job requires GPU acceleration.',
+    )
     available_accelerators: int | Sequence[str] = Field(
         default=1,
         description='Number of GPU accelerators to use.',
     )
+    """
+    Modify max_workers_per_node and cores_per_worker to suit your needs.
+    max_workers_per_node is the number of worker processes to spawn.
+    cores_per_worker is the number of cores to allocate to each worker.
+    Ensure that max_workers_per_node * cores_per_worker <= number of cores
+    """
+    max_workers_per_node: int = Field(
+        default=64,
+        description='Number of workers per node.',
+    )
+    cores_per_worker: int = Field(
+        default=1,
+        description='Number of cores per worker.',
+    )
+
     retries: int = Field(
         default=1,
         description='Number of retries for the task.',
@@ -64,19 +82,27 @@ class WorkstationConfig(BaseComputeConfig):
 
     def get_parsl_config(self, run_dir: str | Path) -> Config:
         """Generate a Parsl configuration for workstation execution."""
+        executor_args = {
+            'address': address_by_hostname(),
+            'label': 'htex',
+            'cpu_affinity': 'block',
+            'worker_port_range': (10000, 20000),
+            'provider': LocalProvider(init_blocks=1, max_blocks=1),
+        }
+        if self.is_gpu:
+            # The job is a GPU job, e.g., an Deep Learning inference job.
+            executor_args['available_accelerators'] = (
+                self.available_accelerators
+            )
+        else:
+            # The job is a CPU job, e.g., a Rosetta stability computation.
+            executor_args['max_workers_per_node'] = 384
+            executor_args['cores_per_worker'] = 1
+
         return Config(
             run_dir=str(run_dir),
             retries=self.retries,
-            executors=[
-                HighThroughputExecutor(
-                    address=address_by_hostname(),
-                    label='htex',
-                    cpu_affinity='block',
-                    available_accelerators=self.available_accelerators,
-                    worker_port_range=(10000, 20000),
-                    provider=LocalProvider(init_blocks=1, max_blocks=1),
-                ),
-            ],
+            executors=[HighThroughputExecutor(**executor_args)],
         )
 
 
