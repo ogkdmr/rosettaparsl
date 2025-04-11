@@ -53,7 +53,7 @@ class RosettaParslWorkflowConfig(BaseModel):
         return self
 
 
-def rosettaparsl_worker(
+def rosettaparsl_worker(  # noqa: PLR0915
     pdb_files: list[Path],
     output_dir: Path,
     pyrosetta_config: PyRosettaConfig,
@@ -62,26 +62,34 @@ def rosettaparsl_worker(
     import pyrosetta
     from pyrosetta import rosetta
 
+    from rosettaparsl.timer import Timer
+
+    timer = Timer(
+        'finished pyRosetta score computation on', *pdb_files
+    ).start()
+
     # Reinitialize PyRosetta in the worker process
-    try:
-        pyrosetta.init(
-            f'-database {pyrosetta_config.database_path} -ex1 -ex2aro -use_input_sc '  # noqa: E501
-            f'-ignore_unrecognized_res -score:weights {pyrosetta_config.weights_file}',  # noqa: E501
-        )
-    except Exception as init_err:
-        print(f'Error initializing PyRosetta in worker: {init_err}')
-        return
+    with Timer('initialized pyRosetta on worker'):
+        try:
+            pyrosetta.init(
+                f'-database {pyrosetta_config.database_path} -ex1 -ex2aro -use_input_sc '  # noqa: E501
+                f'-ignore_unrecognized_res -score:weights {pyrosetta_config.weights_file}',  # noqa: E501
+            )
+        except Exception as init_err:
+            print(f'Error initializing PyRosetta in worker: {init_err}')
+            return
 
     # Initialize the scoring function
     score_fxn = pyrosetta_config.get_scorefxn()
 
     # Process each PDB file
     for pdb_file in pdb_files:
-        try:
-            pose = pyrosetta.pose_from_pdb(str(pdb_file))
-        except Exception as e:
-            print(f'Error loading PDB file {pdb_file}: {e}')
-            continue
+        with Timer('computed pose for', pdb_file):
+            try:
+                pose = pyrosetta.pose_from_pdb(str(pdb_file))
+            except Exception as e:
+                print(f'Error loading PDB file {pdb_file}: {e}')
+                continue
 
         # Create task and pack side chains
         task_factory = rosetta.core.pack.task.TaskFactory()
@@ -93,11 +101,12 @@ def rosettaparsl_worker(
         packer.task_factory(task_factory)
 
         # Pack the side chains
-        try:
-            packer.apply(pose)
-        except Exception as e:
-            print(f'Error during side chain packing for {pdb_file}: {e}')
-            continue
+        with Timer('packed side chains for', pdb_file):
+            try:
+                packer.apply(pose)
+            except Exception as e:
+                print(f'Error during side chain packing for {pdb_file}: {e}')
+                continue
 
         # Backbone & side-chain minimization using the configured method
         min_mover = rosetta.protocols.minimization_packing.MinMover()
@@ -107,12 +116,13 @@ def rosettaparsl_worker(
 
         # Iteratively minimize the energy (maximize stability score)
         prev_score = score_fxn(pose)
-        for _ in range(pyrosetta_config.iterations):
-            min_mover.apply(pose)
-            new_score = score_fxn(pose)
-            if abs(new_score - prev_score) < pyrosetta_config.tolerance:
-                break
-            prev_score = new_score
+        with Timer('iteratively minimized energy for', pdb_file):
+            for _ in range(pyrosetta_config.iterations):
+                min_mover.apply(pose)
+                new_score = score_fxn(pose)
+                if abs(new_score - prev_score) < pyrosetta_config.tolerance:
+                    break
+                prev_score = new_score
 
         # Compute the stability score (ΔΔG);
         # here the folded energy is used as the stability score.
@@ -123,6 +133,7 @@ def rosettaparsl_worker(
         if stability_score is None:
             continue
 
+        # Assumes the PDB file name is in the format 'complex_XXXX.pdb'
         pdb_id = pdb_file.stem.split('_')[1]
 
         # Write the stability score to an individual file
@@ -130,8 +141,11 @@ def rosettaparsl_worker(
         try:
             with open(output_file, 'w') as f:
                 f.write(f'{stability_score}\n')
+                print(f'Wrote stability score for {pdb_id} to {output_file}')
         except Exception as write_err:
             print(f'Error writing results for {pdb_file}: {write_err}')
+
+    timer.stop()
 
 
 if __name__ == '__main__':
