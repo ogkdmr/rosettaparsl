@@ -1,0 +1,19 @@
+# Configuration file to test the workflow.
+
+input_dir: /homes/ogokdemir/lambda_stor/trpB/orig_105_structures
+output_dir: /homes/ogokdemir/lambda_stor/trpB/orig_105_rosetta_results
+chunk_size: 1
+
+pyrosetta_config:
+  database_path: /homes/ogokdemir/projects/rosettaparsl/pyRosetta/PyRosetta4.Release.python312.ubuntu.release-395/setup/pyrosetta/database
+  weights_file: /homes/ogokdemir/projects/rosettaparsl/pyRosetta/PyRosetta4.Release.python312.ubuntu.release-395/setup/pyrosetta/database/scoring/weights/ref2015.wts
+  iterations: 50
+  tolerance: 0.01
+  scorefxn: ref2015
+  minimization_method: lbfgs_armijo_nonmonotone
+
+compute_config:
+  name: workstation
+  is_gpu: false
+  max_workers_per_node: 105
+  cores_per_worker: 1
