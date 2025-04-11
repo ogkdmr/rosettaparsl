@@ -174,10 +174,14 @@ if __name__ == '__main__':
     # Batch the PDB files based on the chunk size.
     pdb_batches = batch_data(pdb_files, config.chunk_size)
 
+    # Output directory for the results, this is different than workflow output.
+    score_output_dir = config.output_dir / 'rosetta_results'
+    score_output_dir.mkdir(parents=True, exist_ok=True)
+
     # Define the worker function with fixed arguments.
     worker_fn = functools.partial(
         rosettaparsl_worker,
-        output_dir=config.output_dir / 'rosetta_results',
+        output_dir=score_output_dir,
         pyrosetta_config=config.pyrosetta_config,
     )
 
