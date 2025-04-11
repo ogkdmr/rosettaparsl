@@ -30,6 +30,12 @@ pip install -e .
 
 ```
 
+## Usage
+From the root directory of the repository.
+
+```shell
+nohup python -m rosettaparsl.main --config examples/<your_config.yaml> &
+```
 
 ## Contributing
 
