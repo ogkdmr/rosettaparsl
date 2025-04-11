@@ -3,7 +3,7 @@
 input_dir: /homes/ogokdemir/lambda_stor/trpB/orig_105_structures
 output_dir: /homes/ogokdemir/lambda_stor/trpB/orig_105_rosetta_results
 chunk_size: 1
-is_test: true
+is_test: false
 
 pyrosetta_config:
   database_path: /homes/ogokdemir/projects/rosettaparsl/pyRosetta/PyRosetta4.Release.python312.ubuntu.release-395/setup/pyrosetta/database
@@ -16,5 +16,5 @@ pyrosetta_config:
 compute_config:
   name: workstation
   is_gpu: false
-  max_workers_per_node: 1
+  max_workers_per_node: 105
   cores_per_worker: 1
