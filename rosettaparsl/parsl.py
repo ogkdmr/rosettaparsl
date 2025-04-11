@@ -96,8 +96,8 @@ class WorkstationConfig(BaseComputeConfig):
             )
         else:
             # The job is a CPU job, e.g., a Rosetta stability computation.
-            executor_args['max_workers_per_node'] = 384
-            executor_args['cores_per_worker'] = 1
+            executor_args['max_workers_per_node'] = self.max_workers_per_node
+            executor_args['cores_per_worker'] = self.cores_per_worker
 
         return Config(
             run_dir=str(run_dir),
